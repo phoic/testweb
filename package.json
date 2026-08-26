@@ -1,0 +1,14 @@
+{
+  "name": "web-security-lab",
+  "version": "1.0.0",
+  "description": "SQL Injection과 XSS의 원리를 취약한 버전과 방어된 버전으로 비교 실습하는 교육용 로컬 웹 애플리케이션",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.19.2"
+  }
+}

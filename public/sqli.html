@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SQL Injection Lab — Web Security Lab</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">WEB SECURITY LAB</span>
+  </a>
+  <nav class="topnav">
+    <a href="/">Dashboard</a>
+    <a href="/sqli.html" class="active">SQL Injection Lab</a>
+    <a href="/xss.html">XSS Lab</a>
+  </nav>
+  <span class="env-tag">localhost only</span>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <p class="eyebrow">Lab 01</p>
+    <h1 class="page-title">SQL Injection</h1>
+    <p class="page-desc">
+      로그인 폼에 입력한 문자열이 SQL 쿼리의 <em>구조</em>에 영향을 줄 수
+      있는지 여부가 두 로그인의 유일한 차이입니다. 같은 아이디/비밀번호를
+      양쪽에 입력해서 결과를 비교해 보세요.
+    </p>
+  </div>
+
+  <section class="panel" style="margin-bottom:20px;">
+    <p class="panel-title"><span class="num">ACCOUNTS</span> 테스트 계정 (가짜 데이터)</p>
+    <div class="chip-row">
+      <span class="chip" data-fill-user="alice" data-fill-pass="password123">alice / password123</span>
+      <span class="chip" data-fill-user="bob" data-fill-pass="test1234">bob / test1234</span>
+      <span class="chip" data-fill-user="carol" data-fill-pass="letmein00">carol / letmein00</span>
+    </div>
+    <p class="hint">칩을 클릭하면 아래 두 로그인 폼에 동시에 채워집니다. 정상적인 계정으로 먼저 로그인이 되는지 확인해 보세요.</p>
+  </section>
+
+  <section class="compare-grid">
+
+    <!-- ============================ VULNERABLE ============================ -->
+    <div class="lane lane--danger">
+      <div class="lane-head">
+        <h3>Vulnerable Login</h3>
+        <span class="pill pill--danger">문자열 결합 쿼리</span>
+      </div>
+      <div class="lane-body">
+
+        <div class="flow" id="flow-sqli-vuln">
+          <div class="flow-node danger" data-step="1"><div class="flow-dot">1</div><div class="flow-label">입력</div></div>
+          <div class="flow-line" data-line="1"></div>
+          <div class="flow-node danger" data-step="2"><div class="flow-dot">2</div><div class="flow-label">서버</div></div>
+          <div class="flow-line" data-line="2"></div>
+          <div class="flow-node danger" data-step="3"><div class="flow-dot">3</div><div class="flow-label">SQL 결합</div></div>
+          <div class="flow-line" data-line="3"></div>
+          <div class="flow-node danger" data-step="4"><div class="flow-dot">4</div><div class="flow-label">DB 실행</div></div>
+        </div>
+
+        <form id="form-sqli-vuln" autocomplete="off">
+          <div class="field">
+            <label for="vuln-username">Username</label>
+            <input id="vuln-username" name="username" type="text" placeholder="예: alice" />
+          </div>
+          <div class="field">
+            <label for="vuln-password">Password</label>
+            <input id="vuln-password" name="password" type="text" placeholder="예: password123" />
+          </div>
+          <div class="chip-row">
+            <span class="chip" data-payload-target="vuln-username" data-payload="' OR '1'='1' -- ">' OR '1'='1' --</span>
+            <span class="chip" data-payload-target="vuln-username" data-payload="anything' OR 1=1 -- ">OR 1=1 --</span>
+          </div>
+          <div class="toolbar">
+            <button type="submit" class="btn btn--danger">Login (Vulnerable)</button>
+          </div>
+        </form>
+
+        <div>
+          <p class="panel-title" style="margin-top:6px;"><span class="num">2</span>서버 처리 과정 — 실제 실행된 쿼리</p>
+          <div class="code-block" id="query-sqli-vuln">아직 요청을 보내지 않았습니다.</div>
+        </div>
+
+        <div class="result" id="result-sqli-vuln">테스트 결과가 여기에 표시됩니다.</div>
+
+      </div>
+    </div>
+
+    <!-- ============================== SAFE ================================ -->
+    <div class="lane lane--safe">
+      <div class="lane-head">
+        <h3>Secure Login</h3>
+        <span class="pill pill--safe">Prepared Statement</span>
+      </div>
+      <div class="lane-body">
+
+        <div class="flow" id="flow-sqli-safe">
+          <div class="flow-node safe" data-step="1"><div class="flow-dot">1</div><div class="flow-label">입력</div></div>
+          <div class="flow-line" data-line="1"></div>
+          <div class="flow-node safe" data-step="2"><div class="flow-dot">2</div><div class="flow-label">서버</div></div>
+          <div class="flow-line" data-line="2"></div>
+          <div class="flow-node safe" data-step="3"><div class="flow-dot">3</div><div class="flow-label">파라미터 바인딩</div></div>
+          <div class="flow-line" data-line="3"></div>
+          <div class="flow-node safe" data-step="4"><div class="flow-dot">4</div><div class="flow-label">DB 실행</div></div>
+        </div>
+
+        <form id="form-sqli-safe" autocomplete="off">
+          <div class="field">
+            <label for="safe-username">Username</label>
+            <input id="safe-username" name="username" type="text" placeholder="예: alice" />
+          </div>
+          <div class="field">
+            <label for="safe-password">Password</label>
+            <input id="safe-password" name="password" type="text" placeholder="예: password123" />
+          </div>
+          <div class="chip-row">
+            <span class="chip" data-payload-target="safe-username" data-payload="' OR '1'='1' -- ">' OR '1'='1' --</span>
+            <span class="chip" data-payload-target="safe-username" data-payload="anything' OR 1=1 -- ">OR 1=1 --</span>
+          </div>
+          <div class="toolbar">
+            <button type="submit" class="btn btn--safe">Login (Secure)</button>
+          </div>
+        </form>
+
+        <div>
+          <p class="panel-title" style="margin-top:6px;"><span class="num">2</span>서버 처리 과정 — 실제 실행된 쿼리</p>
+          <div class="code-block" id="query-sqli-safe">아직 요청을 보내지 않았습니다.</div>
+        </div>
+
+        <div class="result" id="result-sqli-safe">테스트 결과가 여기에 표시됩니다.</div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <section class="panel" style="margin-top:20px;">
+    <div class="console-head">
+      <span class="console-title">Security Monitor</span>
+      <button class="btn btn--ghost" id="clear-console-sqli" type="button">로그 지우기</button>
+    </div>
+    <div class="console" id="console-sqli">
+      <div class="console-empty">// 로그인을 시도하면 처리 단계가 여기에 기록됩니다.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title"><span class="num">3</span>보안 분석</p>
+    <div class="analysis-grid">
+      <div class="analysis-block">
+        <h4><span class="badge-danger">● 왜 취약한가</span></h4>
+        <p>
+          취약한 로그인은 사용자가 입력한 문자열을 SQL 쿼리 문자열에 그대로
+          이어 붙입니다. 이때 입력값 안에 <code>'</code>(작은따옴표)나
+          <code>--</code>(주석 기호) 같은 SQL 문법 요소가 포함되어 있으면,
+          그 값은 더 이상 "데이터"가 아니라 "명령어의 일부"로 해석됩니다.
+        </p>
+        <ul>
+          <li><code>' OR '1'='1' --</code> 를 아이디에 넣으면 조건절이 항상 참이 되어 비밀번호 검증이 통째로 무시됩니다.</li>
+          <li><code>--</code> 이후의 원래 쿼리(비밀번호 비교)는 주석 처리되어 실행되지 않습니다.</li>
+        </ul>
+      </div>
+      <div class="analysis-block">
+        <h4><span class="badge-safe">● 어떻게 방어했는가</span></h4>
+        <p>
+          안전한 로그인은 Prepared Statement(파라미터 바인딩)를 사용합니다.
+          SQL 문장의 구조(<code>? </code>가 들어갈 자리)를 먼저 데이터베이스에
+          전달해 확정한 뒤, 사용자 입력은 오직 "값"으로만 그 자리에
+          채워집니다.
+        </p>
+        <ul>
+          <li>입력값에 <code>'</code>이나 <code>--</code>가 포함되어 있어도 SQL 문법으로 재해석되지 않습니다.</li>
+          <li>쿼리의 구조와 사용자 데이터가 처음부터 분리되어 있기 때문에 문자열 조합 자체가 불가능합니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">Web Security Lab · Educational local environment</footer>
+
+<script src="/js/sqli.js"></script>
+</body>
+</html>

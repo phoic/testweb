@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Web Security Lab — Dashboard</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">WEB SECURITY LAB</span>
+  </a>
+  <nav class="topnav">
+    <a href="/" class="active">Dashboard</a>
+    <a href="/sqli.html">SQL Injection Lab</a>
+    <a href="/xss.html">XSS Lab</a>
+  </nav>
+  <span class="env-tag">localhost only</span>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <p class="eyebrow">진로탐색 발표 · 교육용 실습 환경</p>
+    <h1 class="page-title">웹 보안 취약점 실습 대시보드</h1>
+    <p class="page-desc">
+      같은 기능을 <strong>취약하게 구현한 버전</strong>과
+      <strong>방어 기법을 적용한 버전</strong>으로 나란히 만들어, 같은 입력을
+      넣었을 때 결과가 어떻게 달라지는지 직접 비교합니다. 모든 요청은 이
+      컴퓨터의 localhost 안에서만 처리되며, 외부 사이트나 실제 계정과는
+      전혀 연결되지 않습니다.
+    </p>
+  </div>
+
+  <section class="card-grid">
+
+    <a href="/sqli.html" class="lab-card lab-card--sqli">
+      <div class="lab-card-head">
+        <h2 class="lab-card-title">SQL Injection</h2>
+        <span class="lab-card-tag">01</span>
+      </div>
+      <p class="lab-card-desc">
+        로그인 폼의 아이디 입력값이 SQL 쿼리 구조에 직접 섞여 들어갈 때
+        벌어지는 일을 실험합니다.
+      </p>
+      <div class="status-rows">
+        <div class="status-row">
+          <span class="label"><span class="dot dot--danger"></span>Vulnerable Login</span>
+          <span id="sqli-vuln-status">대기 중</span>
+        </div>
+        <div class="status-row">
+          <span class="label"><span class="dot dot--safe"></span>Secure Login</span>
+          <span id="sqli-safe-status">대기 중</span>
+        </div>
+      </div>
+      <span class="enter-link">실습 시작 →</span>
+    </a>
+
+    <a href="/xss.html" class="lab-card lab-card--xss">
+      <div class="lab-card-head">
+        <h2 class="lab-card-title">XSS</h2>
+        <span class="lab-card-tag">02</span>
+      </div>
+      <p class="lab-card-desc">
+        게시판 댓글이 화면에 그대로 출력될 때, 사용자 입력이 텍스트가
+        아니라 코드로 해석될 수 있다는 것을 실험합니다.
+      </p>
+      <div class="status-rows">
+        <div class="status-row">
+          <span class="label"><span class="dot dot--danger"></span>Vulnerable Board</span>
+          <span id="xss-vuln-status">대기 중</span>
+        </div>
+        <div class="status-row">
+          <span class="label"><span class="dot dot--safe"></span>Secure Board</span>
+          <span id="xss-safe-status">대기 중</span>
+        </div>
+      </div>
+      <span class="enter-link">실습 시작 →</span>
+    </a>
+
+  </section>
+
+  <section class="panel">
+    <p class="panel-title"><span class="num">GUIDE</span> 실습 진행 방법</p>
+    <div class="analysis-grid">
+      <div class="analysis-block">
+        <h4>1. 같은 입력을 두 버전에 넣어보기</h4>
+        <p>
+          각 Lab에는 Vulnerable / Secure 두 개의 패널이 나란히 있습니다.
+          동일한 테스트 입력을 두 쪽에 각각 넣고 결과를 비교하세요.
+        </p>
+      </div>
+      <div class="analysis-block">
+        <h4>2. 처리 흐름과 실제 쿼리 확인하기</h4>
+        <p>
+          입력 → 서버 → DB/브라우저로 이어지는 처리 단계가 화면에 표시되고,
+          실제로 실행된 SQL 쿼리 또는 렌더링 방식이 코드 형태로 함께
+          보여집니다.
+        </p>
+      </div>
+      <div class="analysis-block">
+        <h4>3. 왜 그런 결과가 나왔는지 읽어보기</h4>
+        <p>
+          각 Lab 하단의 보안 분석 패널에서 취약점이 발생하는 이유와 방어
+          코드가 그것을 어떻게 막는지 설명을 확인할 수 있습니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:20px;">
+    <p class="panel-title"><span class="num">NOTE</span> 안전 안내</p>
+    <p style="color:var(--text-secondary); font-size:14px; margin:0;">
+      이 사이트에서 사용하는 계정과 댓글은 모두 발표용으로 만든 가짜
+      데이터입니다. 이 프로젝트는 실제 웹사이트나 타인의 계정을 대상으로
+      하지 않으며, 오직 <code>localhost</code>에서 스스로 만든 환경을
+      실험하기 위한 것입니다.
+    </p>
+  </section>
+
+</main>
+
+<footer class="site-footer">Web Security Lab · Educational local environment</footer>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

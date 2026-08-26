@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XSS Lab — Web Security Lab</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">WEB SECURITY LAB</span>
+  </a>
+  <nav class="topnav">
+    <a href="/">Dashboard</a>
+    <a href="/sqli.html">SQL Injection Lab</a>
+    <a href="/xss.html" class="active">XSS Lab</a>
+  </nav>
+  <span class="env-tag">localhost only</span>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <p class="eyebrow">Lab 02</p>
+    <h1 class="page-title">Cross-Site Scripting (XSS)</h1>
+    <p class="page-desc">
+      두 게시판은 똑같이 입력을 저장합니다. 차이는 <em>화면에 출력하는
+      방식</em>뿐입니다. 같은 댓글을 양쪽에 남겨서 브라우저가 그 내용을
+      "텍스트"로 보는지 "코드"로 보는지 비교해 보세요.
+    </p>
+  </div>
+
+  <section class="panel" style="margin-bottom:20px;">
+    <p class="panel-title"><span class="num">PAYLOADS</span> 테스트 입력 예시</p>
+    <div class="chip-row">
+      <span class="chip" data-xss-payload="<img src=x onerror=&quot;alert('XSS 실행됨! 이 코드는 브라우저가 스크립트로 해석했습니다.')&quot;>">이미지 onerror로 alert 실행</span>
+      <span class="chip" data-xss-payload="<b style='color:#ff6b52'>이 글씨는 굵고 빨갛게 보입니다</b>">굵은 글씨 스타일 주입</span>
+      <span class="chip" data-xss-payload="안녕하세요, 평범한 댓글입니다.">평범한 댓글</span>
+    </div>
+    <p class="hint">칩을 클릭하면 아래 두 댓글 입력창에 동시에 채워집니다. Post 버튼을 눌러 두 게시판에 각각 남겨보세요.</p>
+  </section>
+
+  <section class="compare-grid">
+
+    <!-- ============================ VULNERABLE ============================ -->
+    <div class="lane lane--danger">
+      <div class="lane-head">
+        <h3>Vulnerable Board</h3>
+        <span class="pill pill--danger">innerHTML 직접 삽입</span>
+      </div>
+      <div class="lane-body">
+
+        <div class="flow" id="flow-xss-vuln">
+          <div class="flow-node danger" data-step="1"><div class="flow-dot">1</div><div class="flow-label">입력</div></div>
+          <div class="flow-line" data-line="1"></div>
+          <div class="flow-node danger" data-step="2"><div class="flow-dot">2</div><div class="flow-label">서버 저장</div></div>
+          <div class="flow-line" data-line="2"></div>
+          <div class="flow-node danger" data-step="3"><div class="flow-dot">3</div><div class="flow-label">HTML로 출력</div></div>
+          <div class="flow-line" data-line="3"></div>
+          <div class="flow-node danger" data-step="4"><div class="flow-dot">4</div><div class="flow-label">브라우저 실행</div></div>
+        </div>
+
+        <form id="form-xss-vuln" autocomplete="off">
+          <div class="field">
+            <label for="vuln-comment">Comment</label>
+            <textarea id="vuln-comment" placeholder="댓글을 입력하세요"></textarea>
+          </div>
+          <div class="toolbar">
+            <button type="submit" class="btn btn--danger">Post (Vulnerable)</button>
+          </div>
+        </form>
+
+        <div>
+          <p class="panel-title" style="margin-top:6px;">Comments</p>
+          <div class="comment-list" id="list-xss-vuln"></div>
+        </div>
+
+        <div class="result" id="result-xss-vuln">아직 게시된 댓글이 없습니다.</div>
+
+      </div>
+    </div>
+
+    <!-- ============================== SAFE ================================ -->
+    <div class="lane lane--safe">
+      <div class="lane-head">
+        <h3>Secure Board</h3>
+        <span class="pill pill--safe">HTML Escape 출력</span>
+      </div>
+      <div class="lane-body">
+
+        <div class="flow" id="flow-xss-safe">
+          <div class="flow-node safe" data-step="1"><div class="flow-dot">1</div><div class="flow-label">입력</div></div>
+          <div class="flow-line" data-line="1"></div>
+          <div class="flow-node safe" data-step="2"><div class="flow-dot">2</div><div class="flow-label">서버 저장</div></div>
+          <div class="flow-line" data-line="2"></div>
+          <div class="flow-node safe" data-step="3"><div class="flow-dot">3</div><div class="flow-label">특수문자 escape</div></div>
+          <div class="flow-line" data-line="3"></div>
+          <div class="flow-node safe" data-step="4"><div class="flow-dot">4</div><div class="flow-label">텍스트로 출력</div></div>
+        </div>
+
+        <form id="form-xss-safe" autocomplete="off">
+          <div class="field">
+            <label for="safe-comment">Comment</label>
+            <textarea id="safe-comment" placeholder="댓글을 입력하세요"></textarea>
+          </div>
+          <div class="toolbar">
+            <button type="submit" class="btn btn--safe">Post (Secure)</button>
+          </div>
+        </form>
+
+        <div>
+          <p class="panel-title" style="margin-top:6px;">Comments</p>
+          <div class="comment-list" id="list-xss-safe"></div>
+        </div>
+
+        <div class="result" id="result-xss-safe">아직 게시된 댓글이 없습니다.</div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <section class="panel" style="margin-top:20px;">
+    <div class="console-head">
+      <span class="console-title">Security Monitor</span>
+      <button class="btn btn--ghost" id="clear-console-xss" type="button">로그 지우기</button>
+    </div>
+    <div class="console" id="console-xss">
+      <div class="console-empty">// 댓글을 게시하면 처리 단계가 여기에 기록됩니다.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="panel-title"><span class="num">3</span>보안 분석</p>
+    <div class="analysis-grid">
+      <div class="analysis-block">
+        <h4><span class="badge-danger">● 왜 취약한가</span></h4>
+        <p>
+          취약한 게시판은 저장된 댓글 문자열을
+          <code>element.innerHTML = 댓글내용</code> 형태로 그대로 화면에
+          꽂아 넣습니다. 브라우저는 innerHTML에 들어온 내용을 "글자"가
+          아니라 "HTML 마크업"으로 해석하기 때문에, 댓글 안에
+          <code>&lt;img onerror=...&gt;</code> 같은 태그가 있으면 그 이벤트
+          핸들러 안의 JavaScript가 그대로 실행됩니다.
+        </p>
+        <ul>
+          <li>사용자 입력이 페이지 구조의 일부가 되어버리는 것이 핵심 원인입니다.</li>
+          <li>실제 서비스라면 이 코드로 다른 방문자의 화면에서 임의 스크립트를 실행시킬 수 있습니다.</li>
+        </ul>
+      </div>
+      <div class="analysis-block">
+        <h4><span class="badge-safe">● 어떻게 방어했는가</span></h4>
+        <p>
+          안전한 게시판은 출력 직전에 <code>&lt; &gt; & " '</code> 같은 HTML
+          특수문자를 각각 <code>&amp;lt; &amp;gt; &amp;amp; &amp;quot;
+          &amp;#39;</code>로 치환한 뒤 화면에 표시합니다. 그 결과 브라우저는
+          입력값을 항상 "글자 그대로의 텍스트"로만 인식하고, 태그나 이벤트
+          핸들러로 해석하지 않습니다.
+        </p>
+        <ul>
+          <li>같은 입력이라도 화면에는 <code>&lt;img ...&gt;</code> 라는 글자 자체가 그대로 보입니다.</li>
+          <li>저장 방식은 동일하다는 점이 중요합니다 — 방어는 "출력 시점"에서 이루어집니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">Web Security Lab · Educational local environment</footer>
+
+<script src="/js/xss.js"></script>
+</body>
+</html>
