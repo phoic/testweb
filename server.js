@@ -8,18 +8,17 @@ const express = require("express");
 const path = require("path");
 
 const sqliRoutes = require("./routes/sqli");
-const xssRoutes = require("./routes/xss");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "32kb" }));
+app.get("/", (req, res) => res.redirect("/sqli.html"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/sqli", sqliRoutes);
-app.use("/api/xss", xssRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, "127.0.0.1", () => {
   console.log(`\n  Web Security Lab 실행 중`);
-  console.log(`  → http://localhost:${PORT}\n`);
+  console.log(`  → http://127.0.0.1:${PORT}\n`);
 });

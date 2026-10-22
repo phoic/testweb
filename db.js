@@ -4,9 +4,11 @@
 // 실제 개인정보나 실제 서비스 계정과는 아무 관련이 없다.
 
 const path = require("path");
+const { mkdirSync } = require("node:fs");
 const Database = require("better-sqlite3");
 
-const dbPath = path.join(__dirname, "data", "lab.db");
+const dbPath = process.env.LAB_DB_PATH || path.join(__dirname, "data", "lab.db");
+mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new Database(dbPath);
 
 db.pragma("journal_mode = WAL");
