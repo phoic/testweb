@@ -4,7 +4,7 @@ Node.js · Express · better-sqlite3를 사용하는 로컬 로그인 비교 사
 
 ## 실행
 
-Node.js 22 또는 24와 npm이 필요합니다. 이 환경에서는 Node.js 24.19.0으로 검증했습니다.
+Node.js 24와 npm이 필요합니다. `.node-version`과 `package.json`의 `engines.node`에 24 계열을 지정했습니다. 이 환경에서는 Node.js 24.19.0으로 검증했습니다.
 
 ```bash
 cd /workspace/testweb
