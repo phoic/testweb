@@ -50,12 +50,13 @@ with tempfile.TemporaryDirectory(prefix='sqli-browser-') as directory:
             page.locator('#username').fill('changed after run')
             page.locator('#password').fill('changed password')
             assert page.locator('#history-body tr').first.inner_text() == first_record
+            assert page.locator('#stale-warning').is_visible()
             page.get_by_role('button', name='잘못된 비밀번호', exact=True).click()
             page.get_by_role('button', name='두 방식 비교 실행', exact=True).click()
             page.wait_for_function("document.querySelectorAll('#history-body tr').length === 2")
             assert page.locator('#vulnerable-result .status').inner_text() == '인증 실패'
             assert page.locator('#safe-result .status').inner_text() == '인증 실패'
-            page.get_by_role('button', name='인증 우회 입력', exact=True).click()
+            page.get_by_role('button', name='SQL Injection 입력', exact=True).click()
             page.get_by_role('button', name='두 방식 비교 실행', exact=True).click()
             page.wait_for_function("document.querySelectorAll('#history-body tr').length === 3")
             assert page.locator('#vulnerable-result .status').inner_text() == '인증 성공'
@@ -76,12 +77,37 @@ with tempfile.TemporaryDirectory(prefix='sqli-browser-') as directory:
             assert not page.locator('#vulnerable-result .query').is_visible()
             page.locator('#show-values').check()
             first_record_visible = page.locator('#history-body tr').first.inner_text()
+            page.context.grant_permissions(['clipboard-read', 'clipboard-write'])
+            page.locator('#vulnerable-result .copy-sql').click()
+            page.wait_for_function("document.querySelector('#vulnerable-result .copy-status').textContent.includes('완료')")
+            original_query = records[-1]['vulnerable']['query']
+            assert page.evaluate('navigator.clipboard.readText()') == original_query
+            assert page.locator('#vulnerable-result .close-string').first.inner_text() == "'"
+            assert page.locator('#vulnerable-result .true-condition').first.inner_text() == "OR '1'='1'"
+            assert "password = 'anything'" in page.locator('#vulnerable-result .commented').first.inner_text()
+            for selector in ['.sql-block', '.parameter-block', '.database-block', '.verdict-block']:
+                left = page.locator('#vulnerable-result ' + selector).bounding_box()
+                right = page.locator('#safe-result ' + selector).bounding_box()
+                assert abs(left['y'] - right['y']) < 2, (selector, left, right)
+                assert abs(left['height'] - right['height']) < 2
+            page.get_by_role('button', name='보고서용 보기', exact=True).click()
+            assert not page.locator('#compare-form').is_visible()
+            assert page.locator('#snapshot').is_visible()
+            assert 'anything' in page.locator('#snapshot').inner_text()
+            assert page.locator('#safe-result .bindings').is_visible()
+            assert page.locator('#vulnerable-result .bypass-state').inner_text() == '발생'
+            assert page.locator('#safe-result .bypass-state').inner_text() == '발생하지 않음'
+            page.locator('#capture').screenshot(path='/tmp/testweb-report.png')
+            page.get_by_role('button', name='실험 보기로 돌아가기', exact=True).click()
+            assert page.locator('#compare-form').is_visible()
             page.screenshot(path='/tmp/testweb-comparison.png', full_page=True)
             page.get_by_role('button', name='구문 오류 입력', exact=True).click()
             page.get_by_role('button', name='두 방식 비교 실행', exact=True).click()
             page.wait_for_function("document.querySelectorAll('#history-body tr').length === 4")
             assert page.locator('#vulnerable-result .status').inner_text() == 'DB 오류'
             assert page.locator('#safe-result .status').inner_text() == '인증 실패'
+            assert page.locator('#vulnerable-result .query-state').inner_text() == 'SQL 오류'
+            assert page.locator('#vulnerable-result .bypass-state').inner_text() == '판정 불가'
             # Delayed response: input edits and a second submit cannot change this run.
             def delay(route):
                 response = route.fetch()
@@ -96,7 +122,7 @@ with tempfile.TemporaryDirectory(prefix='sqli-browser-') as directory:
             page.wait_for_function("document.querySelectorAll('#history-body tr').length === 5")
             assert len(requests) == previous + 1
             assert requests[-1]['username'] == 'alice'
-            assert page.locator('#vulnerable-result .input').inner_text().find('alice') >= 0
+            assert page.locator('#vulnerable-result .input').text_content().find('alice') >= 0
             assert page.locator('#history-body tr').first.inner_text() == first_record_visible
             page.unroute('**/api/sqli/compare', delay)
             # History selection reads frozen prior responses, not the current form.
@@ -112,8 +138,8 @@ with tempfile.TemporaryDirectory(prefix='sqli-browser-') as directory:
             page.wait_for_function("document.querySelectorAll('#history-body tr').length === 6")
             assert page.locator('#vulnerable-result img').count() == 0
             assert text_input in page.locator('#vulnerable-result .query').inner_text()
-            for selector in ['#vulnerable-result .query', '#safe-result .bindings']:
-                assert page.locator(selector).evaluate('(element) => element.scrollWidth <= element.clientWidth')
+            assert page.locator('#vulnerable-result .query').evaluate('(element) => getComputedStyle(element).wordBreak') == 'normal'
+            assert page.locator('#vulnerable-result .sql-explanation').inner_text().startswith('임의 입력')
             # Connection failure must be visible and cannot masquerade as a DB result.
             page.route('**/api/sqli/compare', lambda route: route.abort())
             page.get_by_role('button', name='두 방식 비교 실행', exact=True).click()

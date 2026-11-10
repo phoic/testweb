@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SQL Injection 비교 실험</title>
   <link rel="stylesheet" href="/css/sqli.css">
+  <script src="/js/comparison-model.js" defer></script>
   <script src="/js/sqli.js" defer></script>
 </head>
 <body>
@@ -17,7 +18,7 @@
       <div class="examples" aria-label="입력 예시">
         <button type="button" data-example="normal">정상 계정</button>
         <button type="button" data-example="wrong">잘못된 비밀번호</button>
-        <button type="button" data-example="bypass">인증 우회 입력</button>
+        <button type="button" data-example="bypass">SQL Injection 입력</button>
         <button type="button" data-example="syntax">구문 오류 입력</button>
       </div>
       <form id="compare-form" autocomplete="off">
@@ -33,12 +34,14 @@
       <p id="request-state" role="status" aria-live="polite">실행 전 · 두 인증 경로에 같은 입력을 전달합니다.</p>
     </section>
 
-    <section aria-labelledby="result-title">
+    <div class="report-toolbar"><button id="report-toggle" type="button" disabled>보고서용 보기</button><span class="note">실행한 자료만 표시합니다. 보고서 보기에는 가상 비밀번호가 표시됩니다.</span></div>
+    <section id="capture" aria-labelledby="result-title">
       <div class="section-head"><h2 id="result-title">02 <span>실제 요청 · 쿼리 · 결과</span></h2><span class="note">공통 기준: all() 반환 행 수 &gt; 0 → 인증 성공</span></div>
+      <p id="comparison-summary" role="status"></p><p id="stale-warning" role="status" hidden>입력값 변경됨 — 다시 실행 필요. 아래는 이전 실행의 결과입니다.</p><pre id="snapshot" class="sensitive" hidden></pre>
       <p id="selected-run" class="note">아직 실행한 기록이 없습니다.</p>
-      <div class="comparison">
-        <article id="vulnerable-result" class="result-panel vulnerable"><header><h3>취약 구현</h3><span>SQL 문자열에 입력 결합</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
-        <article id="safe-result" class="result-panel safe"><header><h3>방어 구현</h3><span>고정 SQL + 값 바인딩</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
+      <div class="comparison experiment-grid">
+        <article id="vulnerable-result" class="result-panel vulnerable"><header><h3>문자열 결합 방식</h3><span>입력값을 SQL 문장에 직접 넣습니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
+        <article id="safe-result" class="result-panel safe"><header><h3>매개변수화된 쿼리 방식</h3><span>SQL 구조와 입력값을 구분하여 전달합니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
       </div>
       <div id="analysis-result" class="analysis-result" aria-live="polite">분석용 별도 조회 결과는 실행 후 표시됩니다.</div>
       <p class="note">‘인증 우회 관찰’은 별도의 매개변수화 조회에서 정확한 계정이 일치하지 않는데 취약 경로가 인증에 성공한 경우에만 표시합니다. 이 확인은 두 경로의 인증 결과를 변경하지 않습니다.</p>
@@ -66,14 +69,11 @@
   <footer>SQL Injection Lab · 127.0.0.1 전용 · SQLite 실제 실행 자료</footer>
   <template id="result-template">
     <div class="result-body">
-      <div class="outcome"><strong class="status"></strong><span>반환 <strong class="row-count"></strong>행</span></div>
-      <dl class="metadata"><dt>실행 식별자</dt><dd class="execution-id"></dd><dt>서버 실행 시각 (UTC)</dt><dd class="execution-time"></dd><dt>서버 인증 성공</dt><dd class="auth-success"></dd><dt>DB 오류</dt><dd class="db-error-presence"></dd></dl>
-      <h4>해당 실행에 전송한 입력값</h4><pre class="input sensitive"></pre><p class="hidden-note note">원본 입력값은 표시 설정을 켜면 확인할 수 있습니다.</p>
-      <h4 class="query-title"></h4><pre class="query sensitive"></pre><p class="hidden-note note">실제 SQL에는 가상 입력값이 포함될 수 있어 숨겼습니다.</p>
-      <h4>별도 바인딩 값</h4><pre class="bindings sensitive"></pre><p class="hidden-note note">바인딩 값 표시를 숨겼습니다.</p>
-      <h4>반환 계정 정보 · id, username</h4><pre class="accounts"></pre>
-      <h4>DB 오류 메시지</h4><pre class="db-error sensitive"></pre><p class="hidden-note note">오류 유무는 상단에 표시됩니다. 메시지는 입력값 표시 설정을 켜면 확인할 수 있습니다.</p>
-      <details><summary>서버 처리 로그 · 실제 처리 지점에서 생성</summary><pre class="logs sensitive"></pre><p class="hidden-note note">로그 메시지에 입력값이 포함될 수 있어 숨겼습니다.</p></details>
+      <section class="block sql-block"><h4>① 실제 실행에 사용한 SQL</h4><p class="query-title note"></p><pre class="query sensitive"></pre><p class="hidden-note note">입력값 표시를 켜면 SQL을 확인할 수 있습니다.</p><button type="button" class="copy-sql">SQL 원문 복사</button><p class="copy-status note" role="status"></p><div class="sql-explanation sensitive"></div></section>
+      <section class="block parameter-block"><h4>② 별도로 전달한 입력값</h4><pre class="bindings sensitive"></pre><p class="hidden-note note">입력값 표시를 켜면 확인할 수 있습니다.</p><p class="binding-explanation sensitive"></p></section>
+      <section class="block database-block"><h4>③ 데이터베이스 조회 결과</h4><dl class="metadata"><dt>쿼리 실행 상태</dt><dd class="query-state"></dd><dt>반환 계정 수</dt><dd><strong class="row-count"></strong>행</dd><dt>DB 오류</dt><dd class="db-error-presence"></dd></dl><h4>반환 계정 · id, username</h4><pre class="accounts"></pre><h4>DB 오류 메시지</h4><pre class="db-error sensitive"></pre><p class="hidden-note note">오류 메시지는 입력값 표시를 켜면 확인할 수 있습니다.</p></section>
+      <section class="block verdict-block"><h4>④ 인증 결과와 해석</h4><div class="outcome"><strong class="status"></strong></div><dl class="metadata"><dt>서버 인증 성공</dt><dd class="auth-success"></dd><dt>인증 우회 여부</dt><dd class="bypass-state"></dd></dl><p class="interpretation"></p></section>
+      <details class="block evidence"><summary>실행 식별자 · 전송 입력 · 서버 로그</summary><dl class="metadata"><dt>실행 식별자</dt><dd class="execution-id"></dd><dt>실행 시각 (UTC)</dt><dd class="execution-time"></dd></dl><pre class="input sensitive"></pre><pre class="logs sensitive"></pre><p class="hidden-note note">입력값과 로그는 표시 설정을 켜면 확인할 수 있습니다.</p></details>
     </div>
   </template>
 </body>

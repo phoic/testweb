@@ -9,6 +9,8 @@ const examples = {
 const records = [];
 let running = false;
 let selected = null;
+let reportView = false;
+const model = ComparisonModel;
 const json = (value) => JSON.stringify(value, null, 2);
 
 function condition(input) {
@@ -19,6 +21,7 @@ function currentInput() {
 }
 function updateCondition() {
   $('#input-condition').textContent = condition(currentInput());
+  $('#stale-warning').hidden = !selected || JSON.stringify(currentInput()) === JSON.stringify(selected.input);
 }
 for (const button of document.querySelectorAll('[data-example]')) {
   button.addEventListener('click', () => {
@@ -31,7 +34,7 @@ for (const button of document.querySelectorAll('[data-example]')) {
 for (const input of [$('#username'), $('#password')]) input.addEventListener('input', updateCondition);
 
 function applyVisibility() {
-  const show = $('#show-values').checked;
+  const show = $('#show-values').checked || reportView;
   $('#password').type = show ? 'text' : 'password';
   document.querySelectorAll('.sensitive').forEach(element => { element.hidden = !show; });
   document.querySelectorAll('.hidden-note').forEach(element => { element.hidden = show; });
@@ -41,7 +44,7 @@ $('#show-values').addEventListener('change', () => {
   renderHistory();
 });
 
-function renderResult(mode, result) {
+function renderResult(mode, result, record) {
   const panel = $(`#${mode}-result`);
   panel.querySelector('.result-body, .empty')?.remove();
   const content = $('#result-template').content.cloneNode(true);
@@ -53,9 +56,38 @@ function renderResult(mode, result) {
   set('.auth-success', result.success ? '예 (true)' : '아니오 (false)');
   set('.db-error-presence', result.dbError === null ? '없음' : '있음');
   set('.input', json(result.input));
-  set('.query-title', mode === 'safe' ? '실제 SQL 템플릿 · 값은 아래에서 별도 바인딩' : '실행에 사용한 SQL 문자열 · 오류 시 준비/실행 시도문');
-  set('.query', result.query);
-  set('.bindings', mode === 'safe' ? json(result.boundParams) : '없음 (빈 배열 []) · 입력값은 SQL 문자열에 직접 포함');
+  set('.query-title', '읽기용 줄바꿈 표시 · 원문 복사로 서버의 원래 SQL 확인. 오류 시 준비/실행 시도문입니다.');
+  const queryNode = content.querySelector('.query');
+  const parts = mode === 'vulnerable' ? model.sqlParts(record) : [{ text: result.query, kind: '' }];
+  for (const part of parts) {
+    const span = document.createElement('span');
+    span.className = part.kind;
+    // 서버의 고정 접두부 안에서만 표시용 줄바꿈. 사용자 입력은 파싱하거나 수정하지 않는다.
+    span.textContent = part.text.startsWith('SELECT id, username FROM users WHERE ')
+      ? part.text.replace(' FROM users WHERE ', ' FROM users\nWHERE ') : part.text;
+    queryNode.append(span);
+  }
+  const view = model.verdict(record, mode);
+  set('.bypass-state', view.bypass);
+  set('.interpretation', view.interpretation);
+  set('.query-state', result.dbError === null ? '성공' : 'SQL 오류');
+  const explanation = content.querySelector('.sql-explanation');
+  if (mode === 'vulnerable' && model.explainable(record)) {
+    for (const [kind, text] of [
+      ['close-string', '① 작은따옴표: 아이디 문자열을 끝냄'],
+      ['true-condition', '② OR 조건: 항상 참인 조건을 추가함'],
+      ['commented', '③ -- 이후: 주석으로 처리되어 비밀번호 비교가 실행되지 않음']
+    ]) {
+      const note = document.createElement('p'); note.className = kind; note.textContent = text; explanation.append(note);
+    }
+  } else explanation.textContent = mode === 'safe' ? 'SQL의 아이디·비밀번호 비교 조건이 유지됩니다. ? 위치에 값이 별도로 바인딩됩니다.' : '임의 입력의 SQL 의미는 자동 판정하지 않습니다. SQL 원문과 실제 조회 결과를 확인하세요.';
+  set('.binding-explanation', mode === 'safe' ? '첫 번째 ? ← 아이디 입력값 전체\n두 번째 ? ← 비밀번호 입력값 전체\n이 문자열 전체를 아이디 값으로 비교함' : '입력은 위 SQL 원문에 포함되어 전달됩니다.');
+  content.querySelector('.copy-sql').addEventListener('click', async () => {
+    const status = panel.querySelector('.copy-status');
+    try { await navigator.clipboard.writeText(result.query); status.textContent = '서버 SQL 원문 복사 완료'; }
+    catch { status.textContent = '클립보드 접근 실패 · 아래 원문을 선택해 복사하세요.'; const raw = document.createElement('pre'); raw.className = 'sensitive raw-sql'; raw.textContent = result.query; status.append(raw); applyVisibility(); }
+  });
+  set('.bindings', mode === 'safe' ? `첫 번째 ? ← 아이디: ${JSON.stringify(result.boundParams[0])}\n두 번째 ? ← 비밀번호: ${JSON.stringify(result.boundParams[1])}` : '별도로 전달한 매개변수 없음');
   set('.accounts', result.accounts.length ? result.accounts.map(account => JSON.stringify(account)).join('\n') : '[]');
   set('.db-error', result.dbError === null ? '없음' : result.dbError);
   set('.logs', result.log.map(entry => `[${entry.at}] [${entry.executionId}] [${entry.mode}] ${entry.event}\n${entry.message}${entry.error ? `: ${entry.error}` : ''}`).join('\n\n'));
@@ -72,13 +104,17 @@ function difference(record) {
 }
 function showRecord(record) {
   selected = record;
-  renderResult('vulnerable', record.vulnerable);
-  renderResult('safe', record.safe);
+  $('#report-toggle').disabled = false;
+  $('#comparison-summary').textContent = model.summary(record);
+  $('#snapshot').textContent = '해당 실행의 입력값 (가상 실험 데이터)\n' + json(record.input);
+  updateCondition();
+  renderResult('vulnerable', record.vulnerable, record);
+  renderResult('safe', record.safe, record);
   $('#selected-run').textContent = `표시 중: ${record.executionId} · ${record.executedAt} (UTC) · ${record.inputCondition}`;
   const analysis = record.analysis;
   const exact = analysis.exactMatch === null ? '확인 불가' : analysis.exactMatch ? '일치' : '불일치';
   let text = `${difference(record)}\n분석용 별도 매개변수화 조회: 정확한 계정 ${exact}. `;
-  text += analysis.bypassObserved === null ? '분석 DB 오류로 우회 판정 불가.' : analysis.bypassObserved ? '정확한 계정은 불일치하지만 취약 경로에서 계정이 반환되어 인증에 성공했습니다.' : '이 실행에서는 인증 우회가 관찰되지 않았습니다.';
+  text += analysis.bypassObserved === null || record.vulnerable.dbError !== null ? '실험 조회 또는 기준 조회 오류로 우회 판정 불가.' : analysis.bypassObserved ? '정확한 계정은 불일치하지만 취약 경로에서 계정이 반환되어 인증에 성공했습니다.' : '이 실행에서는 인증 우회가 관찰되지 않았습니다.';
   $('#analysis-result').textContent = text;
   // 분석 DB 오류도 숨기지 않는다. 입력값 포함 가능성이 있어 표시 설정을 따른다.
   if (analysis.dbError !== null) {
@@ -172,6 +208,12 @@ $('#download').addEventListener('click', () => {
   link.download = `sqli-records-${new Date().toISOString().replaceAll(':', '-')}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+$('#report-toggle').addEventListener('click', () => {
+  reportView = !reportView;
+  document.body.classList.toggle('report-view', reportView);
+  $('#report-toggle').textContent = reportView ? '실험 보기로 돌아가기' : '보고서용 보기';
+  applyVisibility();
 });
 applyVisibility();
 updateCondition();

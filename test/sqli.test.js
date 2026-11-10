@@ -147,3 +147,23 @@ test('SQL-looking text in valid credentials is never itself classified as bypass
     assert.equal(run.analysis.bypassObserved, false);
   } finally { db.prepare('DELETE FROM users WHERE username = ?').run('OR --'); }
 });
+test('display separates normal authentication, bypass, and SQL errors using real results', async () => {
+  const view = require('../public/js/comparison-model');
+  const normal = await compare('alice', 'password123');
+  assert.equal(view.verdict(normal, 'vulnerable').interpretation, '정상 인증 성공');
+  assert.equal(view.verdict(normal, 'safe').bypass, '발생하지 않음');
+  const bypass = await compare("' OR '1'='1' -- ", 'anything');
+  assert.equal(view.verdict(bypass, 'vulnerable').bypass, '발생');
+  assert.equal(view.verdict(bypass, 'safe').bypass, '발생하지 않음');
+  assert.ok(view.explainable(bypass));
+  assert.equal(view.sqlParts(bypass).map(part => part.text).join(''), bypass.vulnerable.query);
+  const invalid = await compare("'", 'anything');
+  assert.equal(view.verdict(invalid, 'vulnerable').bypass, '판정 불가');
+  assert.equal(view.explainable(invalid), false);
+  const arbitrary = await compare('custom OR --', 'anything');
+  assert.equal(view.explainable(arbitrary), false);
+  const failedReference = structuredClone(normal);
+  failedReference.analysis.exactMatch = null;
+  failedReference.analysis.dbError = 'reference unavailable';
+  assert.equal(view.verdict(failedReference, 'vulnerable').bypass, '판정 불가');
+});
