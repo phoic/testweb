@@ -9,9 +9,9 @@
   <script src="/js/sqli.js" defer></script>
 </head>
 <body>
-  <header class="topbar"><span class="brand">SQL / LAB</span><span>SQLite · 로컬 가상 계정 실험</span><a href="#history">실행 기록 ↓</a></header>
+  <header class="topbar"><span class="brand">SQL<span class="brand-divider">/</span>LAB</span><span>SQLite · 로컬 가상 계정 실험</span><a href="#history">실행 기록 ↓</a></header>
   <main>
-    <div class="page-head"><p class="eyebrow">문자열 결합과 매개변수 바인딩의 비교</p><h1>SQL Injection 비교 실험</h1><p>동일한 입력, 동일한 사용자 테이블. 쿼리 구성 방식에 따른 실제 SQLite 조회 결과를 비교합니다.</p></div>
+    <div class="page-head"><p class="eyebrow">SQL INJECTION · COMPARISON EXPERIMENT</p><h1>SQL Injection <span>비교 실험</span></h1><p>같은 입력이 SQL에서 어떻게 달라지는지, 실제 조회 결과로 확인합니다.</p></div>
 
     <section class="panel" aria-labelledby="input-title">
       <div class="section-head"><h2 id="input-title">01 <span>공통 입력</span></h2><span class="note">예시 버튼은 입력값만 채웁니다.</span></div>
@@ -40,8 +40,8 @@
       <p id="comparison-summary" role="status"></p><p id="stale-warning" role="status" hidden>입력값 변경됨 — 다시 실행 필요. 아래는 이전 실행의 결과입니다.</p><pre id="snapshot" class="sensitive" hidden></pre>
       <p id="selected-run" class="note">아직 실행한 기록이 없습니다.</p>
       <div class="comparison experiment-grid">
-        <article id="vulnerable-result" class="result-panel vulnerable"><header><h3>문자열 결합 방식</h3><span>입력값을 SQL 문장에 직접 넣습니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
-        <article id="safe-result" class="result-panel safe"><header><h3>매개변수화된 쿼리 방식</h3><span>SQL 구조와 입력값을 구분하여 전달합니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
+        <article id="vulnerable-result" class="result-panel vulnerable"><header><h3><small class="method-tag">취약 구현</small>문자열 결합 방식</h3><span>입력값을 SQL 문장에 직접 넣습니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
+        <article id="safe-result" class="result-panel safe"><header><h3><small class="method-tag">방어 구현</small>매개변수화된 쿼리 방식</h3><span>SQL 구조와 입력값을 구분하여 전달합니다.</span></header><div class="empty">공통 입력을 비교 실행하면 실제 조회 결과가 표시됩니다.</div></article>
       </div>
       <div id="analysis-result" class="analysis-result" aria-live="polite">분석용 별도 조회 결과는 실행 후 표시됩니다.</div>
       <p class="note">‘인증 우회 관찰’은 별도의 매개변수화 조회에서 정확한 계정이 일치하지 않는데 취약 경로가 인증에 성공한 경우에만 표시합니다. 이 확인은 두 경로의 인증 결과를 변경하지 않습니다.</p>
